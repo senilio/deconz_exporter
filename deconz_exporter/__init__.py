@@ -22,30 +22,91 @@ class DeconzCollector:
         temperature = GaugeMetricFamily(
             "deconz_temperature_celsius",
             "deCONZ temperature sensor data",
-            labels=["device", "name"],
+            labels=["uid", "name", "manufacturer", "model"],
         )
+
         humidity = GaugeMetricFamily(
-            "deconz_humidity_ratio", "deCONZ humidity sensor data", labels=["device", "name"]
+            "deconz_humidity_percent", 
+            "deCONZ humidity sensor data", 
+            labels=["uid", "name", "manufacturer", "model"]
         )
+
         pressure = GaugeMetricFamily(
-            "deconz_pressure_pascals", "deCONZ pressure sensor data", labels=["device", "name"]
+            "deconz_pressure_pascal", 
+            "deCONZ pressure sensor data", 
+            labels=["uid", "name", "manufacturer", "model"]
         )
+
+        power = GaugeMetricFamily(
+            "deconz_power_watt", 
+            "deCONZ momentary power", 
+            labels=["uid", "name", "manufacturer", "model"]
+        )
+
+        consumption = GaugeMetricFamily(
+            "deconz_power_kWh", 
+            "deCONZ power consumption", 
+            labels=["uid", "name", "manufacturer", "model"]
+        )
+
         for sensor in requests.get(f"{self.api_path}/{self.api_key}/sensors").json().values():
+            print(sensor)
             if sensor["type"] == "ZHATemperature":
                 temperature.add_metric(
-                    [self.device.id, sensor["name"]], sensor["state"]["temperature"] / 100
+                    [
+                        sensor["uniqueid"],
+                        sensor["name"], 
+                        sensor["manufacturername"],
+                        sensor["modelid"]
+                    ], 
+                    sensor["state"]["temperature"] / 100
                 )
             elif sensor["type"] == "ZHAHumidity":
                 humidity.add_metric(
-                    [self.device.id, sensor["name"]], sensor["state"]["humidity"] / 10000
+                    [
+                        sensor["uniqueid"],
+                        sensor["name"],
+                        sensor["manufacturername"],
+                        sensor["modelid"]
+                    ], 
+                    sensor["state"]["humidity"] / 100
                 )
             elif sensor["type"] == "ZHAPressure":
                 pressure.add_metric(
-                    [self.device.id, sensor["name"]], sensor["state"]["pressure"] * 100
+                    [
+                        sensor["uniqueid"],
+                        sensor["name"], 
+                        sensor["manufacturername"],
+                        sensor["modelid"]
+                    ], 
+                    sensor["state"]["pressure"] * 100
                 )
+            elif sensor["type"] == "ZHAPower":
+                power.add_metric(
+                    [
+                        sensor["uniqueid"],
+                        sensor["name"], 
+                        sensor["manufacturername"],
+                        sensor["modelid"]
+                    ], 
+                    sensor["state"]["power"]
+                )
+            elif sensor["type"] == "ZHAConsumption":
+                consumption.add_metric(
+                    [
+                        sensor["uniqueid"],
+                        sensor["name"], 
+                        sensor["manufacturername"],
+                        sensor["modelid"]
+                    ], 
+                    sensor["state"]["consumption"] / 1000
+                )
+
         yield temperature
         yield humidity
         yield pressure
+        yield power
+        yield consumption
 
 
 def main() -> None:
@@ -81,7 +142,6 @@ def main() -> None:
     app = make_wsgi_app()
     httpd = make_server(args.listen_host, args.listen_port, app)
     httpd.serve_forever()
-
 
 if __name__ == "__main__":
     main()
