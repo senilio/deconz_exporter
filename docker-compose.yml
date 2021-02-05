@@ -1,0 +1,11 @@
+version: "3"
+services:
+  deconz_python_exporter:
+    image: deconz_python_exporter:latest
+    expose:
+        - "9759"
+    ports:
+        - "9759:9759"
+    volumes:
+      - './api_keys/:/api_keys'
+    container_name: deconz_python_exporter
